@@ -1,9 +1,12 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 import { Plus, Settings, Folder } from 'lucide-react';
 import { Collection } from '@/lib/types';
 import { useBookmarks } from '@/lib/bookmark-context';
+import { useTranslations } from '@/lib/language-context';
+import { CollectionDialog } from './CollectionDialog';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -19,8 +22,42 @@ export function CollectionSidebar({
   onCollectionSelect 
 }: CollectionSidebarProps) {
   const { getBookmarksByCollection } = useBookmarks();
+  const t = useTranslations();
+  const [dialogState, setDialogState] = useState<{
+    isOpen: boolean;
+    mode: 'create' | 'edit';
+    collectionId?: string | null;
+  }>({
+    isOpen: false,
+    mode: 'create',
+    collectionId: null
+  });
 
   const sortedCollections = [...collections].sort((a, b) => a.order - b.order);
+
+  const handleCreateCollection = () => {
+    setDialogState({
+      isOpen: true,
+      mode: 'create',
+      collectionId: null
+    });
+  };
+
+  const handleEditCollection = (collectionId: string) => {
+    setDialogState({
+      isOpen: true,
+      mode: 'edit',
+      collectionId
+    });
+  };
+
+  const handleCloseDialog = () => {
+    setDialogState({
+      isOpen: false,
+      mode: 'create',
+      collectionId: null
+    });
+  };
 
   const sidebarVariants = {
     hidden: { x: -300, opacity: 0 },
@@ -51,8 +88,8 @@ export function CollectionSidebar({
       {/* Header */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Collections</h2>
-          <Button variant="outline" size="sm">
+          <h2 className="text-lg font-semibold text-gray-900">{t.collection.collections}</h2>
+          <Button variant="outline" size="sm" onClick={handleCreateCollection}>
             <Plus className="h-4 w-4" />
           </Button>
         </div>
@@ -101,7 +138,7 @@ export function CollectionSidebar({
                     "text-xs",
                     isSelected ? "text-blue-600" : "text-gray-500"
                   )}>
-                    {bookmarkCount} {bookmarkCount === 1 ? 'bookmark' : 'bookmarks'}
+                    {bookmarkCount} {bookmarkCount === 1 ? t.home.bookmark : t.home.bookmarks}
                   </p>
                 </div>
 
@@ -115,7 +152,7 @@ export function CollectionSidebar({
                   )}
                   onClick={(e) => {
                     e.stopPropagation();
-                    // Handle collection settings
+                    handleEditCollection(collection.id);
                   }}
                 >
                   <Settings className="h-3 w-3" />
@@ -150,9 +187,10 @@ export function CollectionSidebar({
           <Button
             variant="outline"
             className="w-full justify-start text-gray-600 border-dashed"
+            onClick={handleCreateCollection}
           >
             <Plus className="h-4 w-4 mr-3" />
-            New Collection
+            {t.collection.newCollection}
           </Button>
         </motion.div>
       </div>
@@ -164,11 +202,11 @@ export function CollectionSidebar({
       >
         <div className="text-sm text-gray-600">
           <div className="flex justify-between items-center">
-            <span>Total Collections</span>
+            <span>{t.stats.totalCollections}</span>
             <span className="font-medium">{collections.length}</span>
           </div>
           <div className="flex justify-between items-center mt-1">
-            <span>Total Bookmarks</span>
+            <span>{t.stats.totalBookmarks}</span>
             <span className="font-medium">
               {collections.reduce((total, collection) => 
                 total + getBookmarksByCollection(collection.id).length, 0
@@ -177,6 +215,14 @@ export function CollectionSidebar({
           </div>
         </div>
       </motion.div>
+
+      {/* Collection Dialog */}
+      <CollectionDialog
+        isOpen={dialogState.isOpen}
+        onClose={handleCloseDialog}
+        collectionId={dialogState.collectionId}
+        mode={dialogState.mode}
+      />
     </motion.div>
   );
 }

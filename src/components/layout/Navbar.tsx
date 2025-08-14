@@ -2,20 +2,27 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Settings, User, LogIn, LogOut, Bookmark } from 'lucide-react';
+import { Settings, User, LogIn, LogOut, Bookmark, Globe } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { useLanguage } from '@/lib/language-context';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export function Navbar() {
   const pathname = usePathname();
   const { user, isAuthenticated, login, logout, isLoading } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
 
   const navItems = [
-    { href: '/', label: 'Home', icon: Bookmark },
-    { href: '/manage', label: 'Manage', icon: Settings },
+    { href: '/', label: t.nav.home, icon: Bookmark },
+    { href: '/manage', label: t.nav.manage, icon: Settings },
   ];
+
+  const toggleLanguage = () => {
+    setLanguage(language === 'en' ? 'zh' : 'en');
+  };
 
   const handleAuthAction = async () => {
     if (isAuthenticated) {
@@ -90,15 +97,30 @@ export function Navbar() {
 
           {/* User Actions */}
           <div className="flex items-center space-x-3">
+            {/* Language Toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleLanguage}
+              className="flex items-center space-x-2"
+              title={language === 'en' ? 'Switch to Chinese' : '切换到英文'}
+            >
+              <Globe className="h-4 w-4" />
+              <span className="hidden sm:inline">
+                {language === 'en' ? '中文' : 'EN'}
+              </span>
+            </Button>
             {isAuthenticated && user ? (
               <div className="flex items-center space-x-3">
                 {/* User Avatar */}
                 <div className="flex items-center space-x-2">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center">
                     {user.avatar ? (
-                      <img
+                      <Image
                         src={user.avatar}
                         alt={user.name}
+                        width={32}
+                        height={32}
                         className="w-8 h-8 rounded-full"
                       />
                     ) : (
@@ -119,7 +141,9 @@ export function Navbar() {
                   disabled={isLoading}
                 >
                   <LogOut className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Sign Out</span>
+                  <span className="hidden sm:inline">
+                    {language === 'en' ? 'Sign Out' : '退出'}
+                  </span>
                 </Button>
               </div>
             ) : (
@@ -130,7 +154,10 @@ export function Navbar() {
                 disabled={isLoading}
               >
                 <LogIn className="h-4 w-4 mr-2" />
-                {isLoading ? 'Connecting...' : 'Sign In with GitHub'}
+                {isLoading 
+                  ? (language === 'en' ? 'Connecting...' : '连接中...')
+                  : (language === 'en' ? 'Sign In with GitHub' : '使用GitHub登录')
+                }
               </Button>
             )}
           </div>

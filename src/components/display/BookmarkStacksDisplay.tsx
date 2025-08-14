@@ -4,13 +4,17 @@ import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { BookmarkStack } from './BookmarkStack';
 import { ExpandedCollection } from './ExpandedCollection';
+import { CollectionDialog } from '../manage/CollectionDialog';
 import { useBookmarks } from '@/lib/bookmark-context';
+import { useTranslations } from '@/lib/language-context';
 import { Collection } from '@/lib/types';
 import { Plus } from 'lucide-react';
 
 export function BookmarkStacksDisplay() {
   const { data, loading } = useBookmarks();
+  const t = useTranslations();
   const [expandedCollection, setExpandedCollection] = useState<Collection | null>(null);
+  const [isCollectionDialogOpen, setIsCollectionDialogOpen] = useState(false);
 
   if (loading) {
     return (
@@ -70,17 +74,18 @@ export function BookmarkStacksDisplay() {
           className="bg-white rounded-2xl p-12 shadow-lg max-w-md"
         >
           <div className="text-6xl mb-4">📚</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Welcome to Shelf</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">{t.home.welcome}</h2>
           <p className="text-gray-600 mb-6">
-            Create your first collection to start organizing your bookmarks in beautiful 3D stacks.
+            {t.home.subtitle}
           </p>
           <motion.button
             className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            onClick={() => setIsCollectionDialogOpen(true)}
           >
             <Plus className="h-5 w-5 mr-2" />
-            Create Collection
+            {t.home.createFirst}
           </motion.button>
         </motion.div>
       </div>
@@ -129,6 +134,7 @@ export function BookmarkStacksDisplay() {
               transition: { type: "spring", stiffness: 220, damping: 30 }
             }}
             whileTap={{ scale: 0.98 }}
+            onClick={() => setIsCollectionDialogOpen(true)}
           >
             <motion.div
               className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-3 group-hover:bg-blue-50 transition-colors"
@@ -137,8 +143,8 @@ export function BookmarkStacksDisplay() {
             >
               <Plus className="h-6 w-6" />
             </motion.div>
-            <h3 className="text-lg font-semibold mb-1">New Collection</h3>
-            <p className="text-sm">Click to create</p>
+            <h3 className="text-lg font-semibold mb-1">{t.home.newCollection}</h3>
+            <p className="text-sm">{t.home.clickToCreate}</p>
           </motion.div>
         </motion.div>
       </motion.div>
@@ -157,6 +163,13 @@ export function BookmarkStacksDisplay() {
           onClose={handleCloseExpanded}
         />
       )}
+
+      {/* Collection Dialog */}
+      <CollectionDialog
+        isOpen={isCollectionDialogOpen}
+        onClose={() => setIsCollectionDialogOpen(false)}
+        mode="create"
+      />
     </>
   );
 }

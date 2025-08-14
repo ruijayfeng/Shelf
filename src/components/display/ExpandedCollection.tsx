@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { X, Settings, Plus } from 'lucide-react';
 import { Collection, Bookmark } from '@/lib/types';
 import { BookmarkCard } from './BookmarkCard';
+import { useTranslations } from '@/lib/language-context';
 import { Button } from '@/components/ui/button';
 
 interface ExpandedCollectionProps {
@@ -14,6 +15,8 @@ interface ExpandedCollectionProps {
 }
 
 export function ExpandedCollection({ collection, bookmarks, onClose }: ExpandedCollectionProps) {
+  const t = useTranslations();
+  
   // Handle escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -118,7 +121,7 @@ export function ExpandedCollection({ collection, bookmarks, onClose }: ExpandedC
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">{collection.name}</h2>
                   <p className="text-sm text-gray-600">
-                    {bookmarks.length} {bookmarks.length === 1 ? 'bookmark' : 'bookmarks'}
+                    {bookmarks.length} {bookmarks.length === 1 ? t.home.bookmark : t.home.bookmarks}
                   </p>
                 </div>
               </div>
@@ -126,7 +129,7 @@ export function ExpandedCollection({ collection, bookmarks, onClose }: ExpandedC
               <div className="flex items-center space-x-2">
                 <Button variant="outline" size="sm">
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Bookmark
+                  {t.manage.addBookmark}
                 </Button>
                 <Button variant="outline" size="sm">
                   <Settings className="h-4 w-4" />
@@ -148,13 +151,13 @@ export function ExpandedCollection({ collection, bookmarks, onClose }: ExpandedC
             {bookmarks.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-gray-500">
                 <div className="text-6xl mb-4">{collection.icon || '📚'}</div>
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">No bookmarks yet</h3>
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">{t.manage.noCollections.replace('Collections', 'bookmarks')}</h3>
                 <p className="text-center mb-6 max-w-md">
-                  Start organizing your web resources by adding your first bookmark to this collection.
+                  {t.home.subtitle.replace('合集', '书签').replace('collection', 'bookmark')}
                 </p>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add First Bookmark
+                  {t.manage.addBookmark}
                 </Button>
               </div>
             ) : (

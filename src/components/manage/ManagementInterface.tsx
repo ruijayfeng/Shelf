@@ -6,11 +6,13 @@ import { CollectionSidebar } from './CollectionSidebar';
 import { BookmarkList } from './BookmarkList';
 import { BookmarkForm } from './BookmarkForm';
 import { useBookmarks } from '@/lib/bookmark-context';
+import { useTranslations } from '@/lib/language-context';
 import { FilterState, BookmarkFormData } from '@/lib/types';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 export function ManagementInterface() {
   const { data, loading, getBookmarksByCollection } = useBookmarks();
+  const t = useTranslations();
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(
     data.collections[0]?.id || null
   );
@@ -72,16 +74,16 @@ export function ManagementInterface() {
           className="text-center bg-white rounded-lg p-8 shadow-lg max-w-md"
         >
           <div className="text-6xl mb-4">📚</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">No Collections Yet</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">{t.manage.noCollections}</h2>
           <p className="text-gray-600 mb-6">
-            Create your first collection to start managing your bookmarks.
+            {t.manage.noCollectionsDesc}
           </p>
           <motion.button
             className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            Create First Collection
+            {t.manage.createFirstCollection}
           </motion.button>
         </motion.div>
       </div>
@@ -113,13 +115,15 @@ export function ManagementInterface() {
 
       {/* Bookmark Form Sheet */}
       <Sheet open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <SheetContent className="w-[400px] sm:w-[540px]">
-          <SheetHeader>
-            <SheetTitle>
-              {editingBookmark ? 'Edit Bookmark' : 'Add New Bookmark'}
-            </SheetTitle>
-          </SheetHeader>
-          <div className="mt-6">
+        <SheetContent className="w-[400px] sm:w-[540px] p-0 flex flex-col">
+          <div className="sticky top-0 z-10 bg-background border-b px-6 py-4">
+            <SheetHeader>
+              <SheetTitle>
+                {editingBookmark ? t.form.editBookmark : t.form.addBookmark}
+              </SheetTitle>
+            </SheetHeader>
+          </div>
+          <div className="flex-1 px-6 py-4 overflow-y-auto">
             <BookmarkForm
               collectionId={selectedCollectionId || ''}
               bookmarkId={editingBookmark}

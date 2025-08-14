@@ -4,6 +4,8 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { Bookmark, Collection, BookmarkData, BookmarkFormData, CollectionFormData } from './types';
 import { mockBookmarkData, createEmptyBookmarkData } from './mock-data';
 import { generateId } from './utils';
+import { useToast } from '@/components/ui/toast';
+import { useTranslations } from './language-context';
 
 type BookmarkAction = 
   | { type: 'LOAD_DATA'; payload: BookmarkData }
@@ -167,6 +169,8 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
   const [data, dispatch] = useReducer(bookmarkReducer, createEmptyBookmarkData());
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const { toast } = useToast();
+  const t = useTranslations();
 
   // Load data from localStorage on mount
   useEffect(() => {
@@ -205,26 +209,66 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
     error,
     
     // Bookmark actions
-    addBookmark: (bookmark: BookmarkFormData) => 
-      dispatch({ type: 'ADD_BOOKMARK', payload: bookmark }),
-    updateBookmark: (id: string, data: Partial<BookmarkFormData>) =>
-      dispatch({ type: 'UPDATE_BOOKMARK', payload: { id, data } }),
-    deleteBookmark: (id: string) =>
-      dispatch({ type: 'DELETE_BOOKMARK', payload: id }),
-    toggleBookmarkPin: (id: string) =>
-      dispatch({ type: 'TOGGLE_BOOKMARK_PIN', payload: id }),
-    reorderBookmarks: (collectionId: string, bookmarks: Bookmark[]) =>
-      dispatch({ type: 'REORDER_BOOKMARKS', payload: { collectionId, bookmarks } }),
+    addBookmark: (bookmark: BookmarkFormData) => {
+      dispatch({ type: 'ADD_BOOKMARK', payload: bookmark });
+      toast({
+        type: 'success',
+        title: t.messages.bookmarkAdded,
+        description: bookmark.title
+      });
+    },
+    updateBookmark: (id: string, data: Partial<BookmarkFormData>) => {
+      dispatch({ type: 'UPDATE_BOOKMARK', payload: { id, data } });
+      toast({
+        type: 'success',
+        title: t.messages.bookmarkUpdated
+      });
+    },
+    deleteBookmark: (id: string) => {
+      const bookmark = data.bookmarks.find(b => b.id === id);
+      dispatch({ type: 'DELETE_BOOKMARK', payload: id });
+      toast({
+        type: 'success',
+        title: t.messages.bookmarkDeleted,
+        description: bookmark?.title
+      });
+    },
+    toggleBookmarkPin: (id: string) => {
+      dispatch({ type: 'TOGGLE_BOOKMARK_PIN', payload: id });
+    },
+    reorderBookmarks: (collectionId: string, bookmarks: Bookmark[]) => {
+      dispatch({ type: 'REORDER_BOOKMARKS', payload: { collectionId, bookmarks } });
+    },
     
     // Collection actions
-    addCollection: (collection: CollectionFormData) =>
-      dispatch({ type: 'ADD_COLLECTION', payload: collection }),
-    updateCollection: (id: string, data: Partial<CollectionFormData>) =>
-      dispatch({ type: 'UPDATE_COLLECTION', payload: { id, data } }),
-    deleteCollection: (id: string) =>
-      dispatch({ type: 'DELETE_COLLECTION', payload: id }),
-    reorderCollections: (collections: Collection[]) =>
-      dispatch({ type: 'REORDER_COLLECTIONS', payload: collections }),
+    addCollection: (collection: CollectionFormData) => {
+      dispatch({ type: 'ADD_COLLECTION', payload: collection });
+      toast({
+        type: 'success',
+        title: t.messages.collectionAdded,
+        description: collection.name
+      });
+    },
+    updateCollection: (id: string, data: Partial<CollectionFormData>) => {
+      dispatch({ type: 'UPDATE_COLLECTION', payload: { id, data } });
+      toast({
+        type: 'success',
+        title: t.messages.collectionUpdated,
+        description: data.name
+      });
+    },
+    deleteCollection: (id: string) => {
+      const collection = data.collections.find(c => c.id === id);
+      dispatch({ type: 'DELETE_COLLECTION', payload: id });
+      toast({
+        type: 'success',
+        title: t.messages.collectionDeleted,
+        description: collection?.name
+      });
+    },
+    reorderCollections: (collections: Collection[]) => {
+      dispatch({ type: 'REORDER_COLLECTIONS', payload: collections });
+    },
     
     // Utility functions
     getBookmarksByCollection: (collectionId: string) =>

@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Loader2, ExternalLink, Tag, X } from 'lucide-react';
 import { BookmarkFormData, UrlMetadata } from '@/lib/types';
 import { useBookmarks } from '@/lib/bookmark-context';
+import { useTranslations } from '@/lib/language-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -24,6 +25,7 @@ export function BookmarkForm({
   onCancel 
 }: BookmarkFormProps) {
   const { data, addBookmark, updateBookmark, getCollectionById } = useBookmarks();
+  const t = useTranslations();
   const [formData, setFormData] = useState<BookmarkFormData>({
     title: '',
     url: '',
@@ -159,13 +161,13 @@ export function BookmarkForm({
     const newErrors: Record<string, string> = {};
 
     if (!formData.title.trim()) {
-      newErrors.title = 'Title is required';
+      newErrors.title = t.form.titleRequired;
     }
 
     if (!formData.url.trim()) {
-      newErrors.url = 'URL is required';
+      newErrors.url = t.form.urlRequired;
     } else if (!isValidUrl(formData.url)) {
-      newErrors.url = 'Please enter a valid URL';
+      newErrors.url = t.form.invalidUrl;
     }
 
     setErrors(newErrors);
@@ -195,14 +197,15 @@ export function BookmarkForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="flex flex-col h-full">
+      <form id="bookmark-form" onSubmit={handleSubmit} className="flex-1 space-y-6">
       {/* URL Input */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-gray-700">URL *</label>
+        <label className="text-sm font-medium text-gray-700">{t.form.url}</label>
         <div className="relative">
           <Input
             type="url"
-            placeholder="https://example.com"
+            placeholder={t.form.urlPlaceholder}
             value={formData.url}
             onChange={(e) => handleUrlChange(e.target.value)}
             className={cn(
@@ -265,9 +268,9 @@ export function BookmarkForm({
 
       {/* Title Input */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-gray-700">Title *</label>
+        <label className="text-sm font-medium text-gray-700">{t.form.title}</label>
         <Input
-          placeholder="Enter bookmark title"
+          placeholder={t.form.titlePlaceholder}
           value={formData.title}
           onChange={(e) => {
             setFormData(prev => ({ ...prev, title: e.target.value }));
@@ -282,9 +285,9 @@ export function BookmarkForm({
 
       {/* Description Input */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-gray-700">Description</label>
+        <label className="text-sm font-medium text-gray-700">{t.form.description}</label>
         <textarea
-          placeholder="Optional description"
+          placeholder={t.form.descriptionPlaceholder}
           rows={3}
           value={formData.description}
           onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
@@ -294,7 +297,7 @@ export function BookmarkForm({
 
       {/* Tags Input */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-gray-700">Tags</label>
+        <label className="text-sm font-medium text-gray-700">{t.form.tags}</label>
         <div className="flex flex-wrap gap-2 mb-2">
           {formData.tags.map((tag) => (
             <span
@@ -314,7 +317,7 @@ export function BookmarkForm({
         </div>
         <div className="flex space-x-2">
           <Input
-            placeholder="Add tag"
+            placeholder={t.form.addTag}
             value={newTag}
             onChange={(e) => setNewTag(e.target.value)}
             onKeyPress={handleKeyPress}
@@ -337,7 +340,7 @@ export function BookmarkForm({
           <div className="flex items-center space-x-2">
             <span className="text-lg">{collection.icon || '📚'}</span>
             <span className="text-sm font-medium text-gray-700">
-              Save to: {collection.name}
+              {t.form.saveTo} {collection.name}
             </span>
           </div>
         </div>
@@ -353,29 +356,35 @@ export function BookmarkForm({
           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
         />
         <label htmlFor="pinned" className="text-sm font-medium text-gray-700">
-          Pin to top of collection
+          {t.form.pinToTop}
         </label>
       </div>
 
-      {/* Actions */}
-      <div className="flex space-x-3 pt-4 border-t border-gray-200">
-        <Button
-          type="submit"
-          disabled={isLoading}
-          className="flex-1"
-        >
-          {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          {isEditing ? 'Update Bookmark' : 'Add Bookmark'}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-          disabled={isLoading}
-        >
-          Cancel
-        </Button>
+      </form>
+      
+      {/* Actions - Fixed at bottom */}
+      <div className="sticky bottom-0 bg-background border-t border-gray-200 pt-4 mt-6">
+        <div className="flex space-x-3">
+          <Button
+            type="submit"
+            form="bookmark-form"
+            disabled={isLoading}
+            className="flex-1"
+            onClick={handleSubmit}
+          >
+            {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {isEditing ? t.form.updateBookmark : t.form.addBookmark}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isLoading}
+          >
+            {t.form.cancel}
+          </Button>
+        </div>
       </div>
-    </form>
+    </div>
   );
 }

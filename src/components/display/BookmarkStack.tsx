@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { Collection, Bookmark } from '@/lib/types';
 import { BookmarkCard } from './BookmarkCard';
+import { useTranslations } from '@/lib/language-context';
 import { cn } from '@/lib/utils';
 
 interface BookmarkStackProps {
@@ -14,6 +15,7 @@ interface BookmarkStackProps {
 
 export function BookmarkStack({ collection, bookmarks, onExpand }: BookmarkStackProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const t = useTranslations();
 
   // Show up to 3 cards in the stack
   const displayedBookmarks = bookmarks.slice(0, 3);
@@ -82,7 +84,7 @@ export function BookmarkStack({ collection, bookmarks, onExpand }: BookmarkStack
           <h3 className="text-lg font-semibold text-gray-800">{collection.name}</h3>
         </div>
         <span className="text-sm text-gray-500 bg-white/80 backdrop-blur-sm rounded-full px-2 py-1">
-          {bookmarks.length} {bookmarks.length === 1 ? 'bookmark' : 'bookmarks'}
+          {bookmarks.length} {bookmarks.length === 1 ? t.home.bookmark : t.home.bookmarks}
         </span>
       </motion.div>
 

@@ -2,9 +2,11 @@
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Filter, Grid, List, MoreHorizontal, ExternalLink, Pin, Edit, Trash2 } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { Search, Plus, Filter, Grid, List, MoreHorizontal, ExternalLink, Pin, Edit, Trash2, GripVertical } from 'lucide-react';
 import { Collection, Bookmark, FilterState } from '@/lib/types';
 import { useBookmarks } from '@/lib/bookmark-context';
+import { useTranslations } from '@/lib/language-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn, extractDomain, formatDate } from '@/lib/utils';
@@ -27,15 +29,20 @@ export function BookmarkList({
   onAddBookmark,
   onEditBookmark
 }: BookmarkListProps) {
-  const { deleteBookmark, toggleBookmarkPin, getAllTags } = useBookmarks();
+  const { deleteBookmark, toggleBookmarkPin, getAllTags, reorderBookmarks } = useBookmarks();
+  const t = useTranslations();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedBookmarks, setSelectedBookmarks] = useState<Set<string>>(new Set());
+  const [isDragDisabled, setIsDragDisabled] = useState(false);
 
   const allTags = getAllTags();
 
+  // Disable drag when there are active filters
+  const hasFilters = Boolean(filters.search) || filters.tags.length > 0 || filters.pinned !== undefined;
+
   // Filter bookmarks based on current filters
   const filteredBookmarks = useMemo(() => {
-    return bookmarks.filter(bookmark => {
+    const filtered = bookmarks.filter(bookmark => {
       // Search filter
       if (filters.search) {
         const searchLower = filters.search.toLowerCase();
@@ -62,7 +69,27 @@ export function BookmarkList({
 
       return true;
     });
+
+    // Sort bookmarks: pinned first, then by order
+    return filtered.sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      return a.order - b.order;
+    });
   }, [bookmarks, filters]);
+
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    if (result.source.index === result.destination.index) return;
+    if (hasFilters) return; // Don't allow reordering when filters are active
+
+    const items = Array.from(filteredBookmarks);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    // Update the order of bookmarks
+    reorderBookmarks(collection.id, items);
+  };
 
   const handleSearchChange = (value: string) => {
     onFiltersChange({ ...filters, search: value });
@@ -77,7 +104,7 @@ export function BookmarkList({
   };
 
   const handleDeleteBookmark = (id: string) => {
-    if (confirm('Are you sure you want to delete this bookmark?')) {
+    if (confirm(t.messages.confirmDeleteBookmark)) {
       deleteBookmark(id);
     }
   };
@@ -155,7 +182,7 @@ export function BookmarkList({
             
             <Button onClick={onAddBookmark}>
               <Plus className="h-4 w-4 mr-2" />
-              Add Bookmark
+              {t.manage.addBookmark}
             </Button>
           </div>
         </div>
@@ -166,7 +193,7 @@ export function BookmarkList({
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Search bookmarks..."
+                placeholder={t.manage.search}
                 value={filters.search}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10"
@@ -174,14 +201,14 @@ export function BookmarkList({
             </div>
             <Button variant="outline" size="sm">
               <Filter className="h-4 w-4 mr-2" />
-              Filter
+              {t.common.filter}
             </Button>
           </div>
 
           {/* Tag Filters */}
           {allTags.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              <span className="text-sm font-medium text-gray-700">Tags:</span>
+              <span className="text-sm font-medium text-gray-700">{t.form.tags}:</span>
               {allTags.slice(0, 10).map((tag) => (
                 <button
                   key={tag}
@@ -207,41 +234,57 @@ export function BookmarkList({
           <div className="flex flex-col items-center justify-center py-16 text-gray-500">
             <div className="text-6xl mb-4">{collection.icon || '📚'}</div>
             <h3 className="text-xl font-semibold text-gray-700 mb-2">
-              {filters.search || filters.tags.length > 0 ? 'No matching bookmarks' : 'No bookmarks yet'}
+              {filters.search || filters.tags.length > 0 ? t.common.noResults : t.manage.noCollections.replace('Collections', 'bookmarks')}
             </h3>
             <p className="text-center mb-6 max-w-md">
               {filters.search || filters.tags.length > 0 
-                ? 'Try adjusting your search or filter criteria.'
-                : 'Start organizing your web resources by adding your first bookmark to this collection.'
+                ? (t.common.search + ' ' + t.common.filter).toLowerCase()
+                : t.manage.noCollectionsDesc.replace('合集', '书签').replace('collection', 'bookmark')
               }
             </p>
             <Button onClick={onAddBookmark}>
               <Plus className="h-4 w-4 mr-2" />
-              Add First Bookmark
+              {t.manage.addBookmark}
             </Button>
           </div>
         ) : (
-          <motion.div
-            className={cn(
-              viewMode === 'grid' 
-                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                : "space-y-4"
-            )}
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            <AnimatePresence>
-              {filteredBookmarks.map((bookmark) => (
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <Droppable droppableId="bookmarks" direction={viewMode === 'grid' ? 'horizontal' : 'vertical'}>
+              {(provided, snapshot) => (
                 <motion.div
-                  key={bookmark.id}
-                  variants={itemVariants}
-                  layout
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
                   className={cn(
-                    "group relative bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-all duration-200",
-                    viewMode === 'grid' ? "h-64" : "h-24 flex"
+                    viewMode === 'grid' 
+                      ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                      : "space-y-4"
                   )}
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
                 >
+                  <AnimatePresence>
+                    {filteredBookmarks.map((bookmark, index) => (
+                      <Draggable
+                        key={bookmark.id}
+                        draggableId={bookmark.id}
+                        index={index}
+                        isDragDisabled={hasFilters}
+                      >
+                        {(provided, snapshot) => (
+                          <motion.div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            key={bookmark.id}
+                            variants={itemVariants}
+                            layout
+                            className={cn(
+                              "group relative bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-all duration-200",
+                              viewMode === 'grid' ? "h-64" : "h-24 flex",
+                              snapshot.isDragging && "ring-2 ring-blue-500 shadow-xl",
+                              hasFilters && "cursor-default"
+                            )}
+                          >
                   {/* Grid View */}
                   {viewMode === 'grid' && (
                     <div className="h-full flex flex-col">
@@ -249,6 +292,14 @@ export function BookmarkList({
                       <div className="p-4 flex-1">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center space-x-2 min-w-0 flex-1">
+                            {!hasFilters && (
+                              <div
+                                {...provided.dragHandleProps}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+                              >
+                                <GripVertical className="h-3 w-3 text-gray-400" />
+                              </div>
+                            )}
                             {bookmark.favicon && (
                               <div className="w-4 h-4 flex-shrink-0">
                                 <Image
@@ -345,6 +396,14 @@ export function BookmarkList({
                   {/* List View */}
                   {viewMode === 'list' && (
                     <div className="flex items-center p-4 w-full">
+                      {!hasFilters && (
+                        <div
+                          {...provided.dragHandleProps}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing mr-3"
+                        >
+                          <GripVertical className="h-4 w-4 text-gray-400" />
+                        </div>
+                      )}
                       <div className="flex items-center space-x-3 flex-1 min-w-0">
                         {bookmark.favicon && (
                           <div className="w-4 h-4 flex-shrink-0">
@@ -414,10 +473,16 @@ export function BookmarkList({
                       </div>
                     </div>
                   )}
+                          </motion.div>
+                        )}
+                      </Draggable>
+                    ))}
+                  </AnimatePresence>
+                  {provided.placeholder}
                 </motion.div>
-              ))}
-            </AnimatePresence>
-          </motion.div>
+              )}
+            </Droppable>
+          </DragDropContext>
         )}
       </div>
     </div>
