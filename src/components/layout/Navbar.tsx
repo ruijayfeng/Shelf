@@ -7,13 +7,16 @@ import { usePathname } from 'next/navigation';
 import { Settings, User, LogIn, LogOut, Bookmark, Globe } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
+import { useBookmarks } from '@/lib/bookmark-context';
 import { Button } from '@/components/ui/button';
+import { CompactSyncStatus, SyncActivityDot } from '@/components/ui/sync-status';
 import { cn } from '@/lib/utils';
 
 export function Navbar() {
   const pathname = usePathname();
-  const { user, isAuthenticated, login, logout, isLoading } = useAuth();
+  const { user, isAuthenticated, login, logout, isLoading, isConnectedToGitHub } = useAuth();
   const { language, setLanguage, t } = useLanguage();
+  const { sync } = useBookmarks();
 
   const navItems = [
     { href: '/', label: t.nav.home, icon: Bookmark },
@@ -112,24 +115,45 @@ export function Navbar() {
             </Button>
             {isAuthenticated && user ? (
               <div className="flex items-center space-x-3">
-                {/* User Avatar */}
+                {/* User Avatar with Sync Indicator */}
                 <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center">
-                    {user.avatar ? (
-                      <Image
-                        src={user.avatar}
-                        alt={user.name}
-                        width={32}
-                        height={32}
-                        className="w-8 h-8 rounded-full"
-                      />
-                    ) : (
-                      <User className="h-4 w-4 text-white" />
+                  <div className="relative">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center">
+                      {user.avatar ? (
+                        <Image
+                          src={user.avatar}
+                          alt={user.name}
+                          width={32}
+                          height={32}
+                          className="w-8 h-8 rounded-full"
+                        />
+                      ) : (
+                        <User className="h-4 w-4 text-white" />
+                      )}
+                    </div>
+                    {/* Sync Activity Indicator */}
+                    {isConnectedToGitHub && (
+                      <div className="absolute -bottom-0.5 -right-0.5">
+                        <SyncActivityDot 
+                          status={sync.status}
+                          className="w-3 h-3 bg-white rounded-full p-0.5"
+                        />
+                      </div>
                     )}
                   </div>
                   <div className="hidden sm:block">
                     <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                    <p className="text-xs text-gray-500">Synced</p>
+                    {isConnectedToGitHub ? (
+                      <CompactSyncStatus 
+                        status={sync.status}
+                        lastSync={sync.lastSync}
+                        error={sync.error}
+                        compact={true}
+                        className="text-xs"
+                      />
+                    ) : (
+                      <p className="text-xs text-gray-500">GitHub not connected</p>
+                    )}
                   </div>
                 </div>
 
